@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Practice App")
-        self.resize(1000, 600)  # Set initial window size but allow resizing
+        self.resize(1200, 700)  # Increased window size for better UI
 
         # Set dark theme
         self.set_dark_theme()
@@ -82,22 +82,22 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(15, 15, 15, 15)  # Increased margins
+        self.main_layout.setSpacing(15)  # Increased spacing
 
         # Add the header label for 'Music Practice'
         header_label = QLabel("Music Practice")
         header_font = QFont()
-        header_font.setPointSize(24)  # Adjust the font size as needed
+        header_font.setPointSize(28)  # Larger font size for header
         header_font.setBold(True)
         header_label.setFont(header_font)
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_label.setStyleSheet("color: white;")  # Optional: Set text color to white
+        header_label.setStyleSheet("color: white;")  # Text color remains white
 
-        self.main_layout.addSpacing(5)  # Add vertical space beneath the header
+        self.main_layout.addSpacing(10)  # Add vertical space beneath the header
         # Add the header label to the main layout
         self.main_layout.addWidget(header_label)
-        self.main_layout.addSpacing(20)  # Add vertical space beneath the header
+        self.main_layout.addSpacing(25)  # Add vertical space beneath the header
 
         # Create a QTableWidget
         self.table_widget = QTableWidget()
@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
             self.edit_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
 
         # Set custom delegate for the 'Name' column to add padding
-        padded_delegate = PaddedItemDelegate(left_padding=15, parent=self.table_widget)
+        padded_delegate = PaddedItemDelegate(left_padding=20, parent=self.table_widget)  # Increased padding
         self.table_widget.setItemDelegateForColumn(0, padded_delegate)
 
         # Populate the table
@@ -140,12 +140,40 @@ class MainWindow(QMainWindow):
 
         # Add buttons for Add Record and Reset Table
         self.button_layout = QHBoxLayout()
+
+        self.button_layout.addStretch()  # Add stretch to the left to center the buttons
+
+        self.button_layout.setSpacing(30)  # Increased spacing between buttons for better separation
+
         self.add_record_button = QPushButton("Add Record")
+        self.add_record_button.setStyleSheet("""
+            background-color: #0067a3;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+            color: white;  /* Text color for better contrast */
+        """)
+        self.add_record_button.setMinimumHeight(50)  # Increased button height
+        self.add_record_button.setMinimumWidth(200)  # Increased button width
+        self.add_record_button.setFont(QFont("Arial", 16))  # Larger font size
         self.add_record_button.clicked.connect(self.show_add_dialog)
+
         self.reset_table_button = QPushButton("Reset Table")
+        self.reset_table_button.setStyleSheet("""
+            background-color: #732929;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+            color: white;  /* Text color for better contrast */
+        """)
+        self.reset_table_button.setMinimumHeight(50)  # Increased button height
+        self.reset_table_button.setMinimumWidth(200)  # Increased button width
+        self.reset_table_button.setFont(QFont("Arial", 16))  # Larger font size
         self.reset_table_button.clicked.connect(self.reset_table)
+
         self.button_layout.addWidget(self.add_record_button)
         self.button_layout.addWidget(self.reset_table_button)
+
+        self.button_layout.addStretch()  # Add stretch to the right to center the buttons
+
         self.main_layout.addLayout(self.button_layout)
 
         # Connect cell click event
@@ -265,9 +293,9 @@ class MainWindow(QMainWindow):
         row_position = self.table_widget.rowCount()
         self.table_widget.insertRow(row_position)
 
-        # Create a font with increased size
+        # Create a font with increased size for the Name column
         name_font = QFont()
-        name_font.setPointSize(22)  # Adjust the font size as needed
+        name_font.setPointSize(18)  # Larger font size for name
 
         # Determine the text color based on 'was_performed' and 'isSong' status
         isSong = record.get('isSong', False)
@@ -289,7 +317,7 @@ class MainWindow(QMainWindow):
 
         # Adjust font size for other columns
         other_font = QFont()
-        other_font.setPointSize(14)
+        other_font.setPointSize(14)  # Larger font size for other columns
 
         # Practice Count
         practice_count_item = QTableWidgetItem(str(record['practice_count']))
@@ -337,7 +365,8 @@ class MainWindow(QMainWindow):
         # Edit Button with custom icon
         edit_button = QPushButton()
         edit_button.setIcon(self.edit_icon)
-        edit_button.setIconSize(QSize(24, 24))  # Adjust the icon size as needed
+        edit_button.setIconSize(QSize(24, 24))  # Increased icon size
+        edit_button.setFixedSize(50, 32)  # Increased button size
         edit_button.setStyleSheet("QPushButton { border: none; }")  # Make button borderless
         # Connect the edit button click to a handler with the current row
         edit_button.clicked.connect(partial(self.on_edit_button_click, row_position))
@@ -365,26 +394,61 @@ class MainWindow(QMainWindow):
         """Show a dialog to prompt the user for a new record."""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add New Record")
+        dialog.resize(500, 350)  # Make the dialog larger (width=500, height=350)
+        # Alternatively, set a minimum size
+        # dialog.setMinimumSize(500, 350)
 
         layout = QVBoxLayout(dialog)
+        layout.setSpacing(20)  # Increased spacing between widgets
 
+        # Create a larger font for input fields and buttons
+        input_font = QFont("Arial", 16)  # Larger font size for inputs
+        button_font = QFont("Arial", 14)  # Larger font size for buttons
+
+        # Name Input
         name_input = QLineEdit()
         name_input.setPlaceholderText("Enter name")
+        name_input.setFont(input_font)  # Set larger font
+        name_input.setMinimumHeight(40)  # Increased height
         layout.addWidget(name_input)
+        name_input.setFocus()  # Set focus to the name_input field when the dialog opens
 
         # Checkbox for isSong
         is_song_checkbox = QCheckBox("Is Song")
+        is_song_checkbox.setFont(input_font)  # Set larger font
         is_song_checkbox.setChecked(True)
         layout.addWidget(is_song_checkbox)
 
         # Checkbox for Was Performed
         was_performed_checkbox = QCheckBox("Was Performed")
+        was_performed_checkbox.setFont(input_font)  # Set larger font
         was_performed_checkbox.setChecked(False)
         layout.addWidget(was_performed_checkbox)
 
+        # Buttons Layout
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(30)  # Increased spacing between buttons
+
         add_button = QPushButton("Add")
+        add_button.setStyleSheet("""
+            background-color: #0067a3;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+        """)
+        add_button.setFont(button_font)  # Set larger font
+        add_button.setMinimumHeight(50)  # Increased button height
+        add_button.setMinimumWidth(150)  # Increased button width
+
         cancel_button = QPushButton("Cancel")
+        cancel_button.setStyleSheet("""
+            background-color: #696969;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+        """)
+        cancel_button.setFont(button_font)  # Set larger font
+        cancel_button.setMinimumHeight(50)  # Increased button height
+        cancel_button.setMinimumWidth(150)  # Increased button width
+
         buttons_layout.addWidget(add_button)
         buttons_layout.addWidget(cancel_button)
         layout.addLayout(buttons_layout)
