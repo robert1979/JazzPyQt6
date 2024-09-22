@@ -3,7 +3,7 @@
 import sys
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 
 from PyQt6.QtWidgets import (
@@ -27,8 +27,40 @@ class PaddedItemDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option, index):
         # Adjust the rectangle to add left padding
-        option.rect.adjust(self.left_padding, 0, 0, 0)
+        option.rect = option.rect.adjusted(self.left_padding, 0, 0, 0)
         super().paint(painter, option, index)
+
+
+class LastPracticedItem(QTableWidgetItem):
+    """Custom QTableWidgetItem for 'Last Practiced' column to handle sorting."""
+    def __init__(self, text):
+        super().__init__(text)
+        self.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+
+    def __lt__(self, other):
+        # Define less than for sorting
+        self_text = self.text()
+        other_text = other.text()
+
+        # Define a function to convert text to elapsed days
+        def get_elapsed_days(text):
+            if text == "Never":
+                return float('inf')  # Treat 'Never' as the maximum elapsed time
+            elif text == "Today":
+                return 0
+            elif "day(s) ago" in text:
+                try:
+                    days_ago = int(text.split()[0])
+                    return days_ago
+                except ValueError:
+                    return float('inf')  # Treat invalid formats as 'Never'
+            else:
+                return float('inf')  # Treat unexpected formats as 'Never'
+
+        self_elapsed = get_elapsed_days(self_text)
+        other_elapsed = get_elapsed_days(other_text)
+
+        return self_elapsed < other_elapsed
 
 
 class MainWindow(QMainWindow):
@@ -71,7 +103,7 @@ class MainWindow(QMainWindow):
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(6)
         self.table_widget.setHorizontalHeaderLabels(
-            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "    "]
+            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "Edit"]
         )
 
         # Ensure the grid is visible
@@ -167,6 +199,9 @@ class MainWindow(QMainWindow):
 
     def populate_table(self):
         """Populate the table with the current data."""
+        # Disable sorting while populating to prevent interference
+        self.table_widget.setSortingEnabled(False)
+
         # Clear the table
         self.table_widget.setRowCount(0)
 
@@ -181,25 +216,37 @@ class MainWindow(QMainWindow):
 
         # Determine the key for sorting based on the column
         if sort_column == 0:  # Name
-            key_func = lambda x: x['name']
+            key_func = lambda x: x['name'].lower()  # Case-insensitive
         elif sort_column == 1:  # Practice Count
             key_func = lambda x: x['practice_count']
         elif sort_column == 2:  # Last Practiced
-            key_func = lambda x: x['last_practiced'] or ''
+            def last_practiced_key(record):
+                if record['last_practiced'] is None:
+                    # 'Never' records, assign maximum elapsed time
+                    return float('inf')
+                else:
+                    try:
+                        last_practiced_date = datetime.strptime(record['last_practiced'], '%Y-%m-%d').date()
+                        elapsed_days = (datetime.now().date() - last_practiced_date).days
+                        return elapsed_days
+                    except ValueError:
+                        return float('inf')  # Treat invalid dates as 'Never'
+            key_func = last_practiced_key
         elif sort_column == 3:  # Was Performed
             key_func = lambda x: x.get('was_performed', False)
         elif sort_column == 4:  # Is Song
             key_func = lambda x: x.get('isSong', False)
         else:
-            key_func = lambda x: x['name']
+            key_func = lambda x: x['name'].lower()
 
+        # Sort the records
         all_records.sort(key=key_func, reverse=reverse)
 
         # Keep track of displayed records
         self.displayed_records = all_records
 
         # Add records to the table
-        for index, record in enumerate(all_records):
+        for record in all_records:
             self.add_record_to_table(record)
 
         # Adjust column widths
@@ -210,14 +257,17 @@ class MainWindow(QMainWindow):
         for i in range(1, self.table_widget.columnCount()):
             self.table_widget.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
 
+        # Re-enable sorting
+        self.table_widget.setSortingEnabled(True)
+
     def add_record_to_table(self, record):
         """Add a record to the table."""
         row_position = self.table_widget.rowCount()
         self.table_widget.insertRow(row_position)
 
         # Create a font with increased size
-        item_font = QFont()
-        item_font.setPointSize(22)  # Adjust the font size as needed
+        name_font = QFont()
+        name_font.setPointSize(22)  # Adjust the font size as needed
 
         # Determine the text color based on 'was_performed' and 'isSong' status
         isSong = record.get('isSong', False)
@@ -234,17 +284,18 @@ class MainWindow(QMainWindow):
         name_item = QTableWidgetItem(record['name'])
         name_item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         name_item.setForeground(text_color)  # Set text color
-        name_item.setFont(item_font)  # Set font size
+        name_item.setFont(name_font)  # Set font size
         self.table_widget.setItem(row_position, 0, name_item)
 
         # Adjust font size for other columns
-        item_font.setPointSize(14)
+        other_font = QFont()
+        other_font.setPointSize(14)
 
         # Practice Count
         practice_count_item = QTableWidgetItem(str(record['practice_count']))
         practice_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         practice_count_item.setForeground(text_color)
-        practice_count_item.setFont(item_font)
+        practice_count_item.setFont(other_font)
         self.table_widget.setItem(row_position, 1, practice_count_item)
 
         # Last Practiced
@@ -260,10 +311,11 @@ class MainWindow(QMainWindow):
                 days_elapsed = (today - last_practiced_date).days
                 last_practiced_text = f"{days_elapsed} day(s) ago"
 
-        last_practiced_item = QTableWidgetItem(last_practiced_text)
+        # Use the custom LastPracticedItem
+        last_practiced_item = LastPracticedItem(last_practiced_text)
         last_practiced_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         last_practiced_item.setForeground(text_color)
-        last_practiced_item.setFont(item_font)
+        last_practiced_item.setFont(other_font)
         self.table_widget.setItem(row_position, 2, last_practiced_item)
 
         # Was Performed
@@ -271,7 +323,7 @@ class MainWindow(QMainWindow):
         was_performed_item = QTableWidgetItem(was_performed_text)
         was_performed_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         was_performed_item.setForeground(text_color)
-        was_performed_item.setFont(item_font)
+        was_performed_item.setFont(other_font)
         self.table_widget.setItem(row_position, 3, was_performed_item)
 
         # Is Song
@@ -279,7 +331,7 @@ class MainWindow(QMainWindow):
         is_song_item = QTableWidgetItem(is_song_text)
         is_song_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         is_song_item.setForeground(text_color)
-        is_song_item.setFont(item_font)
+        is_song_item.setFont(other_font)
         self.table_widget.setItem(row_position, 4, is_song_item)
 
         # Edit Button with custom icon
@@ -287,6 +339,7 @@ class MainWindow(QMainWindow):
         edit_button.setIcon(self.edit_icon)
         edit_button.setIconSize(QSize(24, 24))  # Adjust the icon size as needed
         edit_button.setStyleSheet("QPushButton { border: none; }")  # Make button borderless
+        # Connect the edit button click to a handler with the current row
         edit_button.clicked.connect(partial(self.on_edit_button_click, row_position))
         self.table_widget.setCellWidget(row_position, 5, edit_button)
 
@@ -316,9 +369,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dialog)
 
         name_input = QLineEdit()
-
         name_input.setPlaceholderText("Enter name")
-        name_input.setFocus()  # Set focus to the name input field
         layout.addWidget(name_input)
 
         # Checkbox for isSong
