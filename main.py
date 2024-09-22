@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushBu
                              QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem,
                              QHeaderView, QAbstractItemView, QCheckBox, QDialog,QStyle,)
 from PyQt6.QtCore import Qt,QSize
-from PyQt6.QtGui import QFont, QPalette, QColor
+from PyQt6.QtGui import QFont, QPalette, QColor,QIcon
+
 
 # Import EditWindow from edit_window.py
 from edit_window import EditWindow
@@ -232,8 +233,11 @@ class MainWindow(QMainWindow):
         was_performed_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 3, was_performed_item)
 
-        # Edit Button
-        edit_button = QPushButton("Edit")
+        # Edit Button with custom icon
+        edit_button = QPushButton()
+        edit_button.setIcon(QIcon('edit_icon.png'))
+        edit_button.setIconSize(QSize(24, 24))  # Adjust the icon size as needed
+        edit_button.setStyleSheet("QPushButton { border: none; }")  # Make button borderless
         edit_button.clicked.connect(lambda checked, rec=record: self.show_edit_dialog(rec))
         self.table_widget.setCellWidget(row_position, 4, edit_button)
 
