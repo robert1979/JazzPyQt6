@@ -20,7 +20,11 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Practice App")
-        self.setFixedSize(1000, 600)  # Set window size to 1000x600
+        self.resize(1000, 600)  # Set initial window size but allow resizing
+        # self.setFixedSize(1000, 600)  # Removed to allow resizing
+
+        # Optional: Set minimum window size
+        # self.setMinimumSize(800, 500)
 
         # Set dark theme
         self.set_dark_theme()
@@ -42,7 +46,7 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.scroll_area_widget)
 
         self.grid_layout = QGridLayout(self.scroll_area_widget)
-        self.grid_layout.setColumnStretch(0, 1)  # Name column stretches
+        self.grid_layout.setColumnStretch(0, 2)  # Name column stretches more
         self.grid_layout.setColumnStretch(1, 1)
         self.grid_layout.setColumnStretch(2, 1)
         self.grid_layout.setColumnStretch(3, 1)
