@@ -316,7 +316,9 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(dialog)
 
         name_input = QLineEdit()
+
         name_input.setPlaceholderText("Enter name")
+        name_input.setFocus()  # Set focus to the name input field
         layout.addWidget(name_input)
 
         # Checkbox for isSong
