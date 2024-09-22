@@ -106,6 +106,13 @@ class MainWindow(QMainWindow):
             ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "Edit"]
         )
 
+        # Set the font size for column headers
+        header = self.table_widget.horizontalHeader()
+        header_font = QFont()
+        header_font.setPointSize(16)  # Adjust the size as needed
+        header.setFont(header_font)
+        header.setStyleSheet("QHeaderView::section { color: #969393; background-color: #444444; }")
+
         # Ensure the grid is visible
         self.table_widget.setShowGrid(True)
 
@@ -259,6 +266,7 @@ class MainWindow(QMainWindow):
                         return elapsed_days
                     except ValueError:
                         return float('inf')  # Treat invalid dates as 'Never'
+
             key_func = last_practiced_key
         elif sort_column == 3:  # Was Performed
             key_func = lambda x: x.get('was_performed', False)
@@ -278,8 +286,9 @@ class MainWindow(QMainWindow):
             self.add_record_to_table(record)
 
         # Adjust column widths
-        # Set the 'Name' column (column index 0) to ResizeToContents
-        self.table_widget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        # Set the 'Name' column (column index 0) to Fixed and set its width
+        self.table_widget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table_widget.setColumnWidth(0, 300)  # Set to desired width in pixels
 
         # Set the rest of the columns to Stretch
         for i in range(1, self.table_widget.columnCount()):
@@ -304,7 +313,7 @@ class MainWindow(QMainWindow):
         text_color = QColor("#c9c9c9")
 
         if not isSong:
-            text_color = QColor("#ff6600")
+            text_color = QColor("#a1633a")
         elif wasPerformed:
             text_color = QColor("#02a3a3")
 

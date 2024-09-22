@@ -6,7 +6,7 @@ block_cipher = None
 path = os.path.abspath(".")
 
 datas = [
-    (os.path.join(path, 'edit_icon.png'), '.'),
+    (os.path.join(path, 'edit_icon.png'), '.'),  # Changed from .png to .icns
 ]
 
 a = Analysis(
@@ -47,7 +47,8 @@ exe = EXE(
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    entitlements_file=None
+    entitlements_file=None,
+    icon=None  # Remove or set to None since icon is set in BUNDLE
 )
 
 coll = COLLECT(
@@ -63,8 +64,7 @@ coll = COLLECT(
 
 app = BUNDLE(
     coll,
-    name='app.app',
-    icon=None,
+    name='MusicPractice.app',
+    icon=os.path.join(path, 'myapp.icns'),  # Set the icon path
     bundle_identifier=None
 )
-
