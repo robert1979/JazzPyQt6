@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(5)
         self.table_widget.setHorizontalHeaderLabels(
-            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Edit"])
+            ["Name", "Practice Count", "Last Practiced", "Was Performed", "    "])
 
         # Ensure the grid is visible
         self.table_widget.setShowGrid(True)
@@ -186,10 +186,17 @@ class MainWindow(QMainWindow):
         item_font.setPointSize(22)  # Adjust the font size as needed
 
         # Determine the text color based on 'was_performed' status
-        if record.get('was_performed', False):
-            text_color = QColor('cyan')
-        else:
-            text_color = self.palette().color(QPalette.ColorRole.Text)
+
+        isSong = record.get('isSong', False)
+        wasPerformed = record.get('was_performed', False)
+
+        text_color = QColor("#c9c9c9")
+
+        if not(isSong):
+            text_color = QColor("#ff6600")
+        elif record.get('was_performed', False):
+            text_color = QColor("#02a3a3")
+
 
         # Name
         name_item = QTableWidgetItem(record['name'])
