@@ -34,6 +34,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(10)
+
+        # Add the header label for 'Music Practice'
+        header_label = QLabel("Music Practice")
+        header_font = QFont()
+        header_font.setPointSize(24)  # Adjust the font size as needed
+        header_font.setBold(True)
+        header_label.setFont(header_font)
+        header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_label.setStyleSheet("color: white;")  # Optional: Set text color to white
+
+        # Add the header label to the main layout
+        self.main_layout.addWidget(header_label)
 
         # Create a QTableWidget
         self.table_widget = QTableWidget()
@@ -163,14 +177,22 @@ class MainWindow(QMainWindow):
         row_position = self.table_widget.rowCount()
         self.table_widget.insertRow(row_position)
 
+        # Determine the text color based on 'was_performed' status
+        if record.get('was_performed', False):
+            text_color = QColor('green')
+        else:
+            text_color = self.palette().color(QPalette.ColorRole.Text)
+
         # Name
         name_item = QTableWidgetItem(record['name'])
         name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_item.setForeground(text_color)  # Set text color
         self.table_widget.setItem(row_position, 0, name_item)
 
         # Practice Count
         practice_count_item = QTableWidgetItem(str(record['practice_count']))
         practice_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        practice_count_item.setForeground(text_color)  # Set text color
         self.table_widget.setItem(row_position, 1, practice_count_item)
 
         # Last Practiced
@@ -188,12 +210,14 @@ class MainWindow(QMainWindow):
 
         last_practiced_item = QTableWidgetItem(last_practiced_text)
         last_practiced_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        last_practiced_item.setForeground(text_color)  # Set text color
         self.table_widget.setItem(row_position, 2, last_practiced_item)
 
         # Was Performed
         was_performed_text = "Yes" if record.get('was_performed', False) else "No"
         was_performed_item = QTableWidgetItem(was_performed_text)
         was_performed_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        was_performed_item.setForeground(text_color)  # Set text color
         self.table_widget.setItem(row_position, 3, was_performed_item)
 
         # Edit Button
