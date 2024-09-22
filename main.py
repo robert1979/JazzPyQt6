@@ -8,7 +8,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushButton,
                              QVBoxLayout, QHBoxLayout, QLineEdit,
                              QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QAbstractItemView, QCheckBox,QDialog)
+                             QHeaderView, QAbstractItemView, QCheckBox, QDialog)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPalette, QColor
 
@@ -38,8 +38,21 @@ class MainWindow(QMainWindow):
         # Create a QTableWidget
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(5)
-        self.table_widget.setHorizontalHeaderLabels(["Name", "Practice Count", "Last Practiced", "Was Performed", "Edit"])
-        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table_widget.setHorizontalHeaderLabels(
+            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Edit"])
+
+        # Ensure the grid is visible
+        self.table_widget.setShowGrid(True)
+
+        # Set the grid line color to a very dark grey
+        self.table_widget.setStyleSheet("QTableWidget { gridline-color: rgb(50, 50, 50); }")
+
+        # Set grid style to solid line (optional)
+        self.table_widget.setGridStyle(Qt.PenStyle.SolidLine)
+
+        # Remove or comment out this line if present
+        # self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+
         self.table_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_widget.setSortingEnabled(True)  # Enable sorting
@@ -138,8 +151,12 @@ class MainWindow(QMainWindow):
         for record in all_records:
             self.add_record_to_table(record)
 
-        # Resize columns to fit content
-        self.table_widget.resizeColumnsToContents()
+        # Remove the call to resizeColumnsToContents(), as it interferes with stretching
+        # self.table_widget.resizeColumnsToContents()  # Comment out or remove this line
+
+        # After populating the table, set the section resize mode for each column to Stretch
+        for i in range(self.table_widget.columnCount()):
+            self.table_widget.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
 
     def add_record_to_table(self, record):
         """Add a record to the table."""
