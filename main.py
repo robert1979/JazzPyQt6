@@ -6,9 +6,9 @@ import os
 from datetime import datetime
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushButton,
-                             QVBoxLayout, QGridLayout, QHBoxLayout, QLineEdit,
-                             QMessageBox, QScrollArea, QSpacerItem, QSizePolicy,
-                             QCheckBox)
+                             QVBoxLayout, QHBoxLayout, QLineEdit,
+                             QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem,
+                             QHeaderView, QAbstractItemView, QCheckBox,QDialog)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QPalette, QColor
 
@@ -21,10 +21,6 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Practice App")
         self.resize(1000, 600)  # Set initial window size but allow resizing
-        # self.setFixedSize(1000, 600)  # Removed to allow resizing
-
-        # Optional: Set minimum window size
-        # self.setMinimumSize(800, 500)
 
         # Set dark theme
         self.set_dark_theme()
@@ -39,24 +35,20 @@ class MainWindow(QMainWindow):
 
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # Add a scroll area for the grid
-        self.scroll_area = QScrollArea()
-        self.scroll_area_widget = QWidget()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setWidget(self.scroll_area_widget)
-
-        self.grid_layout = QGridLayout(self.scroll_area_widget)
-        self.grid_layout.setColumnStretch(0, 2)  # Name column stretches more
-        self.grid_layout.setColumnStretch(1, 1)
-        self.grid_layout.setColumnStretch(2, 1)
-        self.grid_layout.setColumnStretch(3, 1)
-        self.grid_layout.setColumnStretch(4, 1)
-
-        # Add the scroll area to the main layout
-        self.main_layout.addWidget(self.scroll_area)
+        # Create a QTableWidget
+        self.table_widget = QTableWidget()
+        self.table_widget.setColumnCount(5)
+        self.table_widget.setHorizontalHeaderLabels(["Name", "Practice Count", "Last Practiced", "Was Performed", "Edit"])
+        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_widget.setSortingEnabled(True)  # Enable sorting
 
         # Populate the table
         self.populate_table()
+
+        # Add the table to the main layout
+        self.main_layout.addWidget(self.table_widget)
 
         # Add buttons for Add Record and Reset Table
         self.button_layout = QHBoxLayout()
@@ -67,6 +59,9 @@ class MainWindow(QMainWindow):
         self.button_layout.addWidget(self.add_record_button)
         self.button_layout.addWidget(self.reset_table_button)
         self.main_layout.addLayout(self.button_layout)
+
+        # Connect cell click event
+        self.table_widget.cellClicked.connect(self.on_cell_clicked)
 
     def set_dark_theme(self):
         """Set the dark theme using a stylesheet."""
@@ -114,89 +109,54 @@ class MainWindow(QMainWindow):
 
     def populate_table(self):
         """Populate the table with the current data."""
-        # Clear the grid
-        for i in reversed(range(self.grid_layout.count())):
-            widget = self.grid_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.setParent(None)
+        # Clear the table
+        self.table_widget.setRowCount(0)
 
-        # Separate records into two groups: isSong = True and isSong = False
-        song_records = [r for r in self.data if r.get('isSong', False)]
-        non_song_records = [r for r in self.data if not r.get('isSong', False)]
+        # Combine song and non-song records
+        all_records = self.data.copy()
 
-        # Sort records within each group
-        song_records.sort(key=lambda x: (x['last_practiced'] is not None, x['last_practiced'] or ''))
-        non_song_records.sort(key=lambda x: (x['last_practiced'] is not None, x['last_practiced'] or ''))
+        # Sort the records based on the current sorting column and order
+        header = self.table_widget.horizontalHeader()
+        sort_column = header.sortIndicatorSection()
+        sort_order = header.sortIndicatorOrder()
+        reverse = sort_order == Qt.SortOrder.DescendingOrder
 
-        row = 0  # Start at row 0
+        # Determine the key for sorting based on the column
+        if sort_column == 0:  # Name
+            key_func = lambda x: x['name']
+        elif sort_column == 1:  # Practice Count
+            key_func = lambda x: x['practice_count']
+        elif sort_column == 2:  # Last Practiced
+            key_func = lambda x: x['last_practiced'] or ''
+        elif sort_column == 3:  # Was Performed
+            key_func = lambda x: x.get('was_performed', False)
+        else:
+            key_func = lambda x: x['name']
 
-        # Add headers
-        header_font = QFont()
-        header_font.setBold(True)
-        name_header = QLabel("Name")
-        name_header.setFont(header_font)
-        name_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(name_header, row, 0)
-        practice_count_header = QLabel("Practice Count")
-        practice_count_header.setFont(header_font)
-        practice_count_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(practice_count_header, row, 1)
-        last_practiced_header = QLabel("Last Practiced")
-        last_practiced_header.setFont(header_font)
-        last_practiced_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(last_practiced_header, row, 2)
-        was_performed_header = QLabel("Was Performed")
-        was_performed_header.setFont(header_font)
-        was_performed_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(was_performed_header, row, 3)
-        edit_header = QLabel("Edit")
-        edit_header.setFont(header_font)
-        edit_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(edit_header, row, 4)
+        all_records.sort(key=key_func, reverse=reverse)
 
-        row += 1
+        for record in all_records:
+            self.add_record_to_table(record)
 
-        # Add song records first
-        for record in song_records:
-            self.add_record_to_grid(record, row)
-            row += 1
+        # Resize columns to fit content
+        self.table_widget.resizeColumnsToContents()
 
-        # Add a separator if there are non-song records
-        if non_song_records:
-            self.add_separator(row)
-            row += 1
+    def add_record_to_table(self, record):
+        """Add a record to the table."""
+        row_position = self.table_widget.rowCount()
+        self.table_widget.insertRow(row_position)
 
-        # Add non-song records
-        for record in non_song_records:
-            self.add_record_to_grid(record, row)
-            row += 1
+        # Name
+        name_item = QTableWidgetItem(record['name'])
+        name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.table_widget.setItem(row_position, 0, name_item)
 
-        # Add spacer to fill space
-        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        self.grid_layout.addItem(spacer, row, 0)
+        # Practice Count
+        practice_count_item = QTableWidgetItem(str(record['practice_count']))
+        practice_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.table_widget.setItem(row_position, 1, practice_count_item)
 
-    def add_separator(self, row):
-        """Add a visual separator between song and practice records."""
-        separator = QLabel(" ")
-        self.grid_layout.addWidget(separator, row, 0)
-        # Fill other columns
-        for col in range(1, 5):
-            self.grid_layout.addWidget(QLabel(" "), row, col)
-
-    def add_record_to_grid(self, record, row):
-        """Add a record to the grid."""
-        # Create the button for the "Name" column
-        name_button = QPushButton(record['name'])
-        name_button.clicked.connect(lambda checked, rec=record: self.on_name_button_click(rec))
-        name_button.setStyleSheet("text-align: center;")
-        self.grid_layout.addWidget(name_button, row, 0)
-
-        # Add the practice count label, centered
-        practice_count_label = QLabel(str(record['practice_count']))
-        practice_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(practice_count_label, row, 1)
-
-        # Evaluate the last practiced date
+        # Last Practiced
         if record['last_practiced'] is None:
             last_practiced_text = "Never"
         else:
@@ -209,30 +169,29 @@ class MainWindow(QMainWindow):
                 days_elapsed = (today - last_practiced_date).days
                 last_practiced_text = f"{days_elapsed} day(s) ago"
 
-        # Add the last practiced label, centered
-        last_practiced_label = QLabel(last_practiced_text)
-        last_practiced_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(last_practiced_label, row, 2)
+        last_practiced_item = QTableWidgetItem(last_practiced_text)
+        last_practiced_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.table_widget.setItem(row_position, 2, last_practiced_item)
 
-        # Add the 'Was Performed' label, centered
+        # Was Performed
         was_performed_text = "Yes" if record.get('was_performed', False) else "No"
-        was_performed_label = QLabel(was_performed_text)
-        was_performed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.grid_layout.addWidget(was_performed_label, row, 3)
+        was_performed_item = QTableWidgetItem(was_performed_text)
+        was_performed_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.table_widget.setItem(row_position, 3, was_performed_item)
 
-        # Add an "Edit" button
+        # Edit Button
         edit_button = QPushButton("Edit")
         edit_button.clicked.connect(lambda checked, rec=record: self.show_edit_dialog(rec))
-        self.grid_layout.addWidget(edit_button, row, 4)
+        self.table_widget.setCellWidget(row_position, 4, edit_button)
 
-    def add_record(self, name, isSong=False):
+    def add_record(self, name, isSong=False, was_performed=False):
         """Add a new record to the data."""
         new_record = {
             'name': name,
             'practice_count': 0,
             'last_practiced': None,
             'isSong': isSong,
-            'was_performed': False
+            'was_performed': was_performed
         }
         self.data.append(new_record)
         self.save_data()
@@ -312,8 +271,15 @@ class MainWindow(QMainWindow):
                 self.save_data()
                 self.populate_table()
 
+    def on_cell_clicked(self, row, column):
+        """Handle cell click events."""
+        if column == 0:
+            # Name column clicked, add practice session
+            record = self.data[row]
+            self.on_name_button_click(record)
+
     def on_name_button_click(self, record):
-        """Handle button presses on the name column to add a practice session."""
+        """Handle clicks on the name column to add a practice session."""
         reply = QMessageBox.question(self, 'Add Practice Session',
                                      f"Add a practice session for {record['name']}?",
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
