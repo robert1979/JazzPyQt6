@@ -2,11 +2,12 @@
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QPushButton, QCheckBox, QMessageBox,
-    QLabel, QHBoxLayout, QCalendarWidget
+    QLabel, QHBoxLayout, QCalendarWidget, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from datetime import datetime
+
 
 class EditWindow(QDialog):
     def __init__(self, app, record):
@@ -15,27 +16,54 @@ class EditWindow(QDialog):
         self.app = app
         self.record = record
         self.setWindowTitle(f"Edit: {self.record['name']}")
-        self.setFixedSize(400, 400)
+        self.setFixedSize(400, 300)
 
-        # Create the layout with proper padding and spacing
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
+
+        # Create a sub-layout for checkboxes
+        checkbox_layout = QHBoxLayout()
+        checkbox_layout.setSpacing(10)
 
         # Create the 'Is Song' checkbox and store it as an instance variable
         self.is_song_checkbox = QCheckBox("Is Song")
         self.is_song_checkbox.setChecked(self.record.get('isSong', True))
         self.is_song_checkbox.stateChanged.connect(self.toggle_is_song)
+        checkbox_layout.addWidget(self.is_song_checkbox)
 
         # Create the 'Was Performed' checkbox and store it as an instance variable
         self.was_performed_checkbox = QCheckBox("Was Performed")
         self.was_performed_checkbox.setChecked(self.record.get('was_performed', False))
         self.was_performed_checkbox.stateChanged.connect(self.toggle_was_performed)
+        checkbox_layout.addWidget(self.was_performed_checkbox)
+
+        main_layout.addLayout(checkbox_layout)
+        
+        # Create a sub-layout for buttons
+        button_layout = QVBoxLayout()
+        button_layout.addItem(
+            QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))  # Add space at top
 
         # Create the buttons
         edit_last_practiced_btn = QPushButton("Edit Last Practiced")
+        edit_last_practiced_btn.setStyleSheet("""
+            background-color: #585959;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+        """)
         add_practice_session_btn = QPushButton("Add Practice Session")
+        add_practice_session_btn.setStyleSheet("""
+            background-color: #585959;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+        """)
         delete_btn = QPushButton("Delete")
+        delete_btn.setStyleSheet("""
+            background-color: #585959;  /* Dark Gray */
+            border-radius: 10px;
+            border: none;
+        """)
 
         # Set fixed heights to match the original Kivy code
         edit_last_practiced_btn.setFixedHeight(50)
@@ -47,25 +75,25 @@ class EditWindow(QDialog):
         add_practice_session_btn.clicked.connect(self.on_add_practice_session)
         delete_btn.clicked.connect(self.on_delete)
 
-        # Add widgets to the layout
-        layout.addWidget(edit_last_practiced_btn)
-        layout.addWidget(add_practice_session_btn)
-        layout.addWidget(self.is_song_checkbox)
-        layout.addWidget(self.was_performed_checkbox)
-        layout.addWidget(delete_btn)
+        # Add buttons to the button layout
+        button_layout.addWidget(edit_last_practiced_btn)
+        button_layout.addWidget(add_practice_session_btn)
+        button_layout.addWidget(delete_btn)
+        #button_layout.addItem(
+        #    QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))  # Add space at bottom
 
-        self.setLayout(layout)
+        main_layout.addLayout(button_layout)
+        
+        self.setLayout(main_layout)
 
     def toggle_is_song(self, state):
         """Update the isSong field when the checkbox is toggled."""
-        # Use isChecked() method to get the boolean value
         self.record['isSong'] = self.is_song_checkbox.isChecked()
         self.app.save_data()
         self.app.populate_table()
 
     def toggle_was_performed(self, state):
         """Update the was_performed field when the checkbox is toggled."""
-        # Use isChecked() method to get the boolean value
         self.record['was_performed'] = self.was_performed_checkbox.isChecked()
         self.app.save_data()
         self.app.populate_table()
@@ -77,7 +105,6 @@ class EditWindow(QDialog):
         date_dialog.setFixedSize(400, 400)
 
         layout = QVBoxLayout(date_dialog)
-
         calendar = QCalendarWidget()
         if self.record['last_practiced']:
             last_date = datetime.strptime(self.record['last_practiced'], '%Y-%m-%d')
