@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(6)
         self.table_widget.setHorizontalHeaderLabels(
-            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "Edit"]
+            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "    "]
         )
 
         # Ensure the grid is visible

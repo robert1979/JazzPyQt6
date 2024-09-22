@@ -48,7 +48,7 @@ class EditWindow(QDialog):
         # Create the buttons
         add_practice_session_btn = QPushButton("Add Practice Session")
         add_practice_session_btn.setStyleSheet("""
-            background-color: #8f1d00;  /* Dark Gray */
+            background-color: #0067a3;  /* Dark Gray */
             border-radius: 10px;
             border: none;
         """)
@@ -60,7 +60,7 @@ class EditWindow(QDialog):
         """)
         delete_btn = QPushButton("Delete")
         delete_btn.setStyleSheet("""
-            background-color: #585959;  /* Dark Gray */
+            background-color: #8f1d00;  /* Dark Gray */
             border-radius: 10px;
             border: none;
         """)
