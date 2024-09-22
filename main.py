@@ -8,8 +8,8 @@ from datetime import datetime
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushButton,
                              QVBoxLayout, QHBoxLayout, QLineEdit,
                              QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QAbstractItemView, QCheckBox, QDialog)
-from PyQt6.QtCore import Qt
+                             QHeaderView, QAbstractItemView, QCheckBox, QDialog,QStyle,)
+from PyQt6.QtCore import Qt,QSize
 from PyQt6.QtGui import QFont, QPalette, QColor
 
 # Import EditWindow from edit_window.py
@@ -46,8 +46,11 @@ class MainWindow(QMainWindow):
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_label.setStyleSheet("color: white;")  # Optional: Set text color to white
 
+        self.main_layout.addSpacing(5)  # Add vertical space beneath the header
         # Add the header label to the main layout
         self.main_layout.addWidget(header_label)
+        self.main_layout.addSpacing(20)  # Add vertical space beneath the header
+
 
         # Create a QTableWidget
         self.table_widget = QTableWidget()
@@ -177,9 +180,13 @@ class MainWindow(QMainWindow):
         row_position = self.table_widget.rowCount()
         self.table_widget.insertRow(row_position)
 
+        # Create a font with increased size
+        item_font = QFont()
+        item_font.setPointSize(22)  # Adjust the font size as needed
+
         # Determine the text color based on 'was_performed' status
         if record.get('was_performed', False):
-            text_color = QColor('green')
+            text_color = QColor('cyan')
         else:
             text_color = self.palette().color(QPalette.ColorRole.Text)
 
@@ -187,12 +194,15 @@ class MainWindow(QMainWindow):
         name_item = QTableWidgetItem(record['name'])
         name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         name_item.setForeground(text_color)  # Set text color
+        name_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 0, name_item)
 
+        item_font.setPointSize(14)
         # Practice Count
         practice_count_item = QTableWidgetItem(str(record['practice_count']))
         practice_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         practice_count_item.setForeground(text_color)  # Set text color
+        practice_count_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 1, practice_count_item)
 
         # Last Practiced
@@ -211,6 +221,7 @@ class MainWindow(QMainWindow):
         last_practiced_item = QTableWidgetItem(last_practiced_text)
         last_practiced_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         last_practiced_item.setForeground(text_color)  # Set text color
+        last_practiced_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 2, last_practiced_item)
 
         # Was Performed
@@ -218,6 +229,7 @@ class MainWindow(QMainWindow):
         was_performed_item = QTableWidgetItem(was_performed_text)
         was_performed_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         was_performed_item.setForeground(text_color)  # Set text color
+        was_performed_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 3, was_performed_item)
 
         # Edit Button
