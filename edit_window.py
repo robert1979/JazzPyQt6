@@ -46,14 +46,14 @@ class EditWindow(QDialog):
             QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))  # Add space at top
 
         # Create the buttons
-        edit_last_practiced_btn = QPushButton("Edit Last Practiced")
-        edit_last_practiced_btn.setStyleSheet("""
-            background-color: #585959;  /* Dark Gray */
+        add_practice_session_btn = QPushButton("Add Practice Session")
+        add_practice_session_btn.setStyleSheet("""
+            background-color: #8f1d00;  /* Dark Gray */
             border-radius: 10px;
             border: none;
         """)
-        add_practice_session_btn = QPushButton("Add Practice Session")
-        add_practice_session_btn.setStyleSheet("""
+        edit_last_practiced_btn = QPushButton("Edit Last Practiced")
+        edit_last_practiced_btn.setStyleSheet("""
             background-color: #585959;  /* Dark Gray */
             border-radius: 10px;
             border: none;
@@ -76,8 +76,8 @@ class EditWindow(QDialog):
         delete_btn.clicked.connect(self.on_delete)
 
         # Add buttons to the button layout
-        button_layout.addWidget(edit_last_practiced_btn)
         button_layout.addWidget(add_practice_session_btn)
+        button_layout.addWidget(edit_last_practiced_btn)
         button_layout.addWidget(delete_btn)
         #button_layout.addItem(
         #    QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))  # Add space at bottom
