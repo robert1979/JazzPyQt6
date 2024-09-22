@@ -4,17 +4,20 @@ import sys
 import json
 import os
 from datetime import datetime
+from functools import partial  # Import partial from functools
 
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QPushButton,
-                             QVBoxLayout, QHBoxLayout, QLineEdit,
-                             QMessageBox, QScrollArea, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QAbstractItemView, QCheckBox, QDialog,QStyle,)
-from PyQt6.QtCore import Qt,QSize
-from PyQt6.QtGui import QFont, QPalette, QColor,QIcon
-
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QLabel, QPushButton,
+    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox, QScrollArea,
+    QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
+    QCheckBox, QDialog, QStyle
+)
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QFont, QPalette, QColor, QIcon
 
 # Import EditWindow from edit_window.py
 from edit_window import EditWindow
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -52,12 +55,12 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(header_label)
         self.main_layout.addSpacing(20)  # Add vertical space beneath the header
 
-
         # Create a QTableWidget
         self.table_widget = QTableWidget()
-        self.table_widget.setColumnCount(5)
+        self.table_widget.setColumnCount(6)
         self.table_widget.setHorizontalHeaderLabels(
-            ["Name", "Practice Count", "Last Practiced", "Was Performed", "    "])
+            ["Name", "Practice Count", "Last Practiced", "Was Performed", "Is Song", "Edit"]
+        )
 
         # Ensure the grid is visible
         self.table_widget.setShowGrid(True)
@@ -68,12 +71,18 @@ class MainWindow(QMainWindow):
         # Set grid style to solid line (optional)
         self.table_widget.setGridStyle(Qt.PenStyle.SolidLine)
 
-        # Remove or comment out this line if present
-        # self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-
         self.table_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table_widget.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table_widget.setSortingEnabled(True)  # Enable sorting
+
+        # Load the edit icon
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(script_dir, 'edit_icon.png')
+        if os.path.exists(icon_path):
+            self.edit_icon = QIcon(icon_path)
+        else:
+            # Use a standard icon if custom icon not found
+            self.edit_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
 
         # Populate the table
         self.populate_table()
@@ -95,7 +104,7 @@ class MainWindow(QMainWindow):
         self.table_widget.cellClicked.connect(self.on_cell_clicked)
 
     def set_dark_theme(self):
-        """Set the dark theme using a stylesheet."""
+        """Set the dark theme using a palette."""
         dark_palette = QPalette()
 
         dark_palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
@@ -126,10 +135,12 @@ class MainWindow(QMainWindow):
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as file:
                 data = json.load(file)
-                # Ensure all records have 'was_performed' key
+                # Ensure all records have 'was_performed' and 'isSong' keys
                 for record in data:
                     if 'was_performed' not in record:
                         record['was_performed'] = False
+                    if 'isSong' not in record:
+                        record['isSong'] = False
                 return data
         return []
 
@@ -143,7 +154,7 @@ class MainWindow(QMainWindow):
         # Clear the table
         self.table_widget.setRowCount(0)
 
-        # Combine song and non-song records
+        # Copy the data to avoid modifying the original list
         all_records = self.data.copy()
 
         # Sort the records based on the current sorting column and order
@@ -161,19 +172,25 @@ class MainWindow(QMainWindow):
             key_func = lambda x: x['last_practiced'] or ''
         elif sort_column == 3:  # Was Performed
             key_func = lambda x: x.get('was_performed', False)
+        elif sort_column == 4:  # Is Song
+            key_func = lambda x: x.get('isSong', False)
         else:
             key_func = lambda x: x['name']
 
         all_records.sort(key=key_func, reverse=reverse)
 
+        # Keep track of displayed records
+        self.displayed_records = all_records
+
         for record in all_records:
             self.add_record_to_table(record)
 
-        # Remove the call to resizeColumnsToContents(), as it interferes with stretching
-        # self.table_widget.resizeColumnsToContents()  # Comment out or remove this line
+        # Adjust column widths
+        # Set the 'Name' column (column index 0) to ResizeToContents
+        self.table_widget.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
 
-        # After populating the table, set the section resize mode for each column to Stretch
-        for i in range(self.table_widget.columnCount()):
+        # Set the rest of the columns to Stretch
+        for i in range(1, self.table_widget.columnCount()):
             self.table_widget.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
 
     def add_record_to_table(self, record):
@@ -185,18 +202,16 @@ class MainWindow(QMainWindow):
         item_font = QFont()
         item_font.setPointSize(22)  # Adjust the font size as needed
 
-        # Determine the text color based on 'was_performed' status
-
+        # Determine the text color based on 'was_performed' and 'isSong' status
         isSong = record.get('isSong', False)
         wasPerformed = record.get('was_performed', False)
 
         text_color = QColor("#c9c9c9")
 
-        if not(isSong):
+        if not isSong:
             text_color = QColor("#ff6600")
-        elif record.get('was_performed', False):
+        elif wasPerformed:
             text_color = QColor("#02a3a3")
-
 
         # Name
         name_item = QTableWidgetItem(record['name'])
@@ -205,12 +220,14 @@ class MainWindow(QMainWindow):
         name_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 0, name_item)
 
+        # Adjust font size for other columns
         item_font.setPointSize(14)
+
         # Practice Count
         practice_count_item = QTableWidgetItem(str(record['practice_count']))
         practice_count_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        practice_count_item.setForeground(text_color)  # Set text color
-        practice_count_item.setFont(item_font)  # Set font size
+        practice_count_item.setForeground(text_color)
+        practice_count_item.setFont(item_font)
         self.table_widget.setItem(row_position, 1, practice_count_item)
 
         # Last Practiced
@@ -228,25 +245,33 @@ class MainWindow(QMainWindow):
 
         last_practiced_item = QTableWidgetItem(last_practiced_text)
         last_practiced_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        last_practiced_item.setForeground(text_color)  # Set text color
-        last_practiced_item.setFont(item_font)  # Set font size
+        last_practiced_item.setForeground(text_color)
+        last_practiced_item.setFont(item_font)
         self.table_widget.setItem(row_position, 2, last_practiced_item)
 
         # Was Performed
-        was_performed_text = "Yes" if record.get('was_performed', False) else "No"
+        was_performed_text = "Yes" if wasPerformed else "No"
         was_performed_item = QTableWidgetItem(was_performed_text)
         was_performed_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        was_performed_item.setForeground(text_color)  # Set text color
-        was_performed_item.setFont(item_font)  # Set font size
+        was_performed_item.setForeground(text_color)
+        was_performed_item.setFont(item_font)
         self.table_widget.setItem(row_position, 3, was_performed_item)
+
+        # Is Song
+        is_song_text = "Yes" if isSong else "No"
+        is_song_item = QTableWidgetItem(is_song_text)
+        is_song_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        is_song_item.setForeground(text_color)
+        is_song_item.setFont(item_font)
+        self.table_widget.setItem(row_position, 4, is_song_item)
 
         # Edit Button with custom icon
         edit_button = QPushButton()
-        edit_button.setIcon(QIcon('edit_icon.png'))
+        edit_button.setIcon(self.edit_icon)
         edit_button.setIconSize(QSize(24, 24))  # Adjust the icon size as needed
         edit_button.setStyleSheet("QPushButton { border: none; }")  # Make button borderless
-        edit_button.clicked.connect(lambda checked, rec=record: self.show_edit_dialog(rec))
-        self.table_widget.setCellWidget(row_position, 4, edit_button)
+        edit_button.clicked.connect(partial(self.show_edit_dialog, record))
+        self.table_widget.setCellWidget(row_position, 5, edit_button)
 
     def add_record(self, name, isSong=False, was_performed=False):
         """Add a new record to the data."""
@@ -339,7 +364,7 @@ class MainWindow(QMainWindow):
         """Handle cell click events."""
         if column == 0:
             # Name column clicked, add practice session
-            record = self.data[row]
+            record = self.displayed_records[row]
             self.on_name_button_click(record)
 
     def on_name_button_click(self, record):
@@ -353,6 +378,7 @@ class MainWindow(QMainWindow):
             record['last_practiced'] = datetime.now().strftime('%Y-%m-%d')
             self.save_data()
             self.populate_table()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
