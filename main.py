@@ -4,19 +4,31 @@ import sys
 import json
 import os
 from datetime import datetime
-from functools import partial  # Import partial from functools
+from functools import partial
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox, QScrollArea,
+    QVBoxLayout, QHBoxLayout, QLineEdit, QMessageBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView,
-    QCheckBox, QDialog, QStyle
+    QCheckBox, QDialog, QStyle, QStyledItemDelegate
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont, QPalette, QColor, QIcon
 
 # Import EditWindow from edit_window.py
 from edit_window import EditWindow
+
+
+class PaddedItemDelegate(QStyledItemDelegate):
+    """Custom delegate to add padding to table items."""
+    def __init__(self, left_padding=10, parent=None):
+        super().__init__(parent)
+        self.left_padding = left_padding
+
+    def paint(self, painter, option, index):
+        # Adjust the rectangle to add left padding
+        option.rect.adjust(self.left_padding, 0, 0, 0)
+        super().paint(painter, option, index)
 
 
 class MainWindow(QMainWindow):
@@ -83,6 +95,10 @@ class MainWindow(QMainWindow):
         else:
             # Use a standard icon if custom icon not found
             self.edit_icon = self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+
+        # Set custom delegate for the 'Name' column to add padding
+        padded_delegate = PaddedItemDelegate(left_padding=15, parent=self.table_widget)
+        self.table_widget.setItemDelegateForColumn(0, padded_delegate)
 
         # Populate the table
         self.populate_table()
@@ -154,7 +170,7 @@ class MainWindow(QMainWindow):
         # Clear the table
         self.table_widget.setRowCount(0)
 
-        # Copy the data to avoid modifying the original list
+        # Copy and sort the data
         all_records = self.data.copy()
 
         # Sort the records based on the current sorting column and order
@@ -182,7 +198,8 @@ class MainWindow(QMainWindow):
         # Keep track of displayed records
         self.displayed_records = all_records
 
-        for record in all_records:
+        # Add records to the table
+        for index, record in enumerate(all_records):
             self.add_record_to_table(record)
 
         # Adjust column widths
@@ -215,7 +232,7 @@ class MainWindow(QMainWindow):
 
         # Name
         name_item = QTableWidgetItem(record['name'])
-        name_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        name_item.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         name_item.setForeground(text_color)  # Set text color
         name_item.setFont(item_font)  # Set font size
         self.table_widget.setItem(row_position, 0, name_item)
@@ -270,8 +287,13 @@ class MainWindow(QMainWindow):
         edit_button.setIcon(self.edit_icon)
         edit_button.setIconSize(QSize(24, 24))  # Adjust the icon size as needed
         edit_button.setStyleSheet("QPushButton { border: none; }")  # Make button borderless
-        edit_button.clicked.connect(partial(self.show_edit_dialog, record))
+        edit_button.clicked.connect(partial(self.on_edit_button_click, row_position))
         self.table_widget.setCellWidget(row_position, 5, edit_button)
+
+    def on_edit_button_click(self, row):
+        """Handle clicks on the edit button."""
+        record = self.displayed_records[row]
+        self.show_edit_dialog(record)
 
     def add_record(self, name, isSong=False, was_performed=False):
         """Add a new record to the data."""
